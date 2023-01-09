@@ -1,0 +1,51 @@
+cabal-version: 3.0
+name:          term-learn
+version:       0.1.0.0
+license:       MIT
+license-file:  LICENSE
+author:        Mark Stein
+maintainer:    2024marks463@student.whps.org
+build-type:    Simple
+
+common base
+  default-language: GHC2021
+  build-depends:    base ^>=4.16.1.0
+  ghc-options:      -Wall
+
+library
+  import:             base
+  hs-source-dirs:     src
+  build-depends:
+    , aeson
+    , brick
+    , containers
+    , file-embed
+    , lens
+    , PyF
+    , random
+    , vector
+    , vty
+
+  exposed-modules:
+    TermLearn
+    TermLearn.Config
+    TermLearn.Types
+    TermLearn.UI
+    TermLearn.UI.Flashcards
+    TermLearn.UI.Logo
+    TermLearn.UI.Match
+    TermLearn.UI.Select
+    TermLearn.UI.Test
+    TermLearn.Util
+
+  default-extensions:
+    BlockArguments
+    ImplicitParams
+    LambdaCase
+
+executable term-learn
+  import:         base
+  main-is:        Main.hs
+  build-depends:  term-learn
+  hs-source-dirs: app
+  ghc-options:    -threaded
