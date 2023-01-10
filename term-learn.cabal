@@ -23,6 +23,7 @@ library
     , lens
     , PyF
     , random
+    , time
     , vector
     , vty
 

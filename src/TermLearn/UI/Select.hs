@@ -12,6 +12,7 @@ import Control.Lens
 import Control.Monad.IO.Class (liftIO)
 import Data.Map qualified as M
 import Data.Set qualified as S
+import Data.Time (getCurrentTime)
 import Data.Vector qualified as V
 import Graphics.Vty qualified as VT
 import System.CPUTime (getCPUTime)
@@ -50,7 +51,7 @@ onSelectEvent mode = \case
       five <- shuffleIO ?terms
       terms <- shuffleIO $ fst <$> five
       definitions <- shuffleIO $ snd <$> five
-      start <- getCPUTime
+      start <- getCurrentTime
       pure $ Match terms definitions (Nothing, Nothing) S.empty start Nothing
     2 -> pure Test
     _ -> error $ "impossible mode selected (" <> show mode <> ")"

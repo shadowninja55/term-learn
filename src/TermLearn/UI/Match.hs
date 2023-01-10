@@ -13,18 +13,22 @@ import Data.Char
 import Data.Map qualified as M
 import Data.Maybe (fromJust, isNothing)
 import Data.Set qualified as S
+import Data.Time (UTCTime, diffUTCTime, getCurrentTime, nominalDiffTimeToSeconds)
 import Data.Vector qualified as V
 import Graphics.Vty qualified as VT
 import PyF (fmt)
-import System.CPUTime (getCPUTime)
 import TermLearn.Types
 import TermLearn.UI.Logo
 import TermLearn.Util (shuffleIO)
+import Text.Printf (printf)
  
 drawMatch :: Env -> [Widget ()]
 drawMatch (Match terms definitions selected correct start end) = pure . vCenter . hCenter . padBottom (Pad 4) $ vBox 
-  [ hCenter . str $ maybe " " (\n -> show $ fromIntegral (n - start) / 1e12) end
+  [ hCenter . str $ maybe " " elapsed end
   , hCenter . withBorderStyle unicodeRounded . border . padLeftRight 1 $ vBox rows
+  , hCenter $ vBox 
+    [ str "q - quit"
+    ]
   ]
  where
   rows = left <> [str " "] <> right
@@ -35,25 +39,32 @@ drawMatch (Match terms definitions selected correct start end) = pure . vCenter 
     (Just x, Nothing) -> if digitToInt n == x then withAttr (attrName "selected") else id
     _ -> id
   render n s = highlight n $ str [fmt|[{n}] {s}{replicate (logoWidth - length s - 3) ' '}{check s}|]
+  elapsed end = show $ diffUTCTime end start
 
-onMatchEvent :: (?terms :: Terms) => (V.Vector String, V.Vector String, (Maybe Int, Maybe Int), S.Set String, Integer, Maybe Integer) -> BrickEvent () () -> EventM () Env ()
+onMatchEvent :: (?terms :: Terms) => (V.Vector String, V.Vector String, (Maybe Int, Maybe Int), S.Set String, UTCTime, Maybe UTCTime) -> BrickEvent () () -> EventM () Env ()
 onMatchEvent (terms, definitions, selected, correct, start, end) = \case
   VtyEvent (VT.EvKey (VT.KChar 'q') []) -> id .= Select 0
   VtyEvent (VT.EvKey (VT.KChar c) []) | isDigit c -> let n = digitToInt c in do
     selected' <- case selected of
-      (Nothing, Nothing) -> pure (Just n, Nothing)
-      (Just x, Nothing) -> do
-        let 
-         term = terms V.! (x - 1)
-         definition = definitions V.! if n == 0 then 4 else n - 6
-        when (definition == fromJust (lookup term $ V.toList ?terms)) $
-          _Match . _4 %= S.union (S.fromList [term, definition])
-        pure (Just x, Just n)
-      (Just _, Just _) -> pure (Just n, Nothing)
+      (Nothing, Nothing) -> pure $ updateSelected n
+      (Just x, Nothing) -> if n `notElem` [6, 7, 8, 9, 0] 
+        then pure (Nothing, Nothing)
+        else do
+          let 
+           term = terms V.! (x - 1)
+           definition = definitions V.! if n == 0 then 4 else n - 6
+          when (definition == fromJust (lookup term $ V.toList ?terms)) $
+            _Match . _4 %= S.union (S.fromList [term, definition])
+          pure (Just x, Just n)
+      (Just _, Just _) -> pure $ updateSelected n
     correct' <- use $ _Match . _4
     if S.size correct' < 10
       then _Match . _3 .= selected'
       else when (isNothing end) do
-        end' <- liftIO getCPUTime
+        end' <- liftIO getCurrentTime
         _Match . _6 ?= end'
   _ -> continueWithoutRedraw
+ where
+  updateSelected n
+    | n `elem` [1..5] = (Just n, Nothing)
+    | otherwise = (Nothing, Nothing)
