@@ -10,17 +10,14 @@ import Control.Lens
 import Control.Monad (when)
 import Control.Monad.IO.Class (liftIO)
 import Data.Char
-import Data.Map qualified as M
 import Data.Maybe (fromJust, isNothing)
 import Data.Set qualified as S
-import Data.Time (UTCTime, diffUTCTime, getCurrentTime, nominalDiffTimeToSeconds)
+import Data.Time (diffUTCTime, getCurrentTime)
 import Data.Vector qualified as V
 import Graphics.Vty qualified as VT
 import PyF (fmt)
 import TermLearn.Types
 import TermLearn.UI.Logo
-import TermLearn.Util (shuffleIO)
-import Text.Printf (printf)
  
 drawMatch :: Env -> [Widget ()]
 drawMatch (Match terms definitions selected correct start end) = pure . vCenter . hCenter . padBottom (Pad 4) $ vBox 
@@ -41,8 +38,8 @@ drawMatch (Match terms definitions selected correct start end) = pure . vCenter 
   render n s = highlight n $ str [fmt|[{n}] {s}{replicate (logoWidth - length s - 3) ' '}{check s}|]
   elapsed end = show $ diffUTCTime end start
 
-onMatchEvent :: (?terms :: Terms) => (V.Vector String, V.Vector String, (Maybe Int, Maybe Int), S.Set String, UTCTime, Maybe UTCTime) -> BrickEvent () () -> EventM () Env ()
-onMatchEvent (terms, definitions, selected, correct, start, end) = \case
+onMatchEvent :: (?terms :: Terms) => Env -> BrickEvent () () -> EventM () Env ()
+onMatchEvent (Match terms definitions selected correct start end) = \case
   VtyEvent (VT.EvKey (VT.KChar 'q') []) -> id .= Select 0
   VtyEvent (VT.EvKey (VT.KChar c) []) | isDigit c -> let n = digitToInt c in do
     selected' <- case selected of

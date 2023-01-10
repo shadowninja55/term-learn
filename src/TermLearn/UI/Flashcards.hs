@@ -33,8 +33,8 @@ drawFlashcards (Flashcards cards card flipped) = pure . vCenter . hCenter . padT
  where
   front = bool fst snd
 
-onFlashcardsEvent :: (?terms :: Terms) => (Terms, Int, Bool) -> BrickEvent () () -> EventM () Env ()
-onFlashcardsEvent (cards, card, flipped) = \case
+onFlashcardsEvent :: (?terms :: Terms) => Env -> BrickEvent () () -> EventM () Env ()
+onFlashcardsEvent (Flashcards cards card flipped) = \case
   VtyEvent (VT.EvKey (VT.KChar 'k') []) -> do
     _Flashcards . _2 %= max 0 . pred
     _Flashcards . _3 .= False

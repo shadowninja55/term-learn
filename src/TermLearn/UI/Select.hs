@@ -10,12 +10,10 @@ import Brick.Widgets.Border.Style (unicodeRounded)
 import Brick.Widgets.Center
 import Control.Lens
 import Control.Monad.IO.Class (liftIO)
-import Data.Map qualified as M
 import Data.Set qualified as S
 import Data.Time (getCurrentTime)
 import Data.Vector qualified as V
 import Graphics.Vty qualified as VT
-import System.CPUTime (getCPUTime)
 import TermLearn.Types
 import TermLearn.UI.Logo
 import TermLearn.Util (shuffleIO)
@@ -41,8 +39,8 @@ drawSelect (Select mode) = pure . vCenter . hCenter $ vBox
     | n == mode = withAttr (attrName "selected") . str . ('>' :) . tail
     | otherwise = str
 
-onSelectEvent :: (?terms :: Terms) => Int -> BrickEvent () () -> EventM () Env ()
-onSelectEvent mode = \case
+onSelectEvent :: (?terms :: Terms) => Env -> BrickEvent () () -> EventM () Env ()
+onSelectEvent (Select mode) = \case
   VtyEvent (VT.EvKey (VT.KChar 'k') []) -> _Select %= max 0 . pred
   VtyEvent (VT.EvKey (VT.KChar 'j') []) -> _Select %= min (length modes - 1) . succ
   VtyEvent (VT.EvKey (VT.KChar ' ') []) -> put =<< case mode of
@@ -53,7 +51,9 @@ onSelectEvent mode = \case
       definitions <- shuffleIO $ snd <$> five
       start <- getCurrentTime
       pure $ Match terms definitions (Nothing, Nothing) S.empty start Nothing
-    2 -> pure Test
+    2 -> do
+      terms <- liftIO $ V.toList <$> shuffleIO ?terms
+      pure $ Test terms "" S.empty S.empty (attrName "")
     _ -> error $ "impossible mode selected (" <> show mode <> ")"
   VtyEvent (VT.EvKey (VT.KChar 'q') []) -> halt
   _ -> continueWithoutRedraw

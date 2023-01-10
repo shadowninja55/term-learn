@@ -4,37 +4,41 @@
 module TermLearn.UI (runApp) where
 
 import Brick
-import Control.Monad (join)
 import Data.Functor (void)
 import Graphics.Vty qualified as VT
 import TermLearn.Types
 import TermLearn.UI.Flashcards
-import TermLearn.UI.Select
 import TermLearn.UI.Match
+import TermLearn.UI.Select
+import TermLearn.UI.Test
 
-draw :: Env -> [Widget ()]
+draw :: (?terms :: Terms) => Env -> [Widget ()]
 draw env = case env of
   Select {}  -> drawSelect env
   Flashcards {} -> drawFlashcards env
   Match {} -> drawMatch env
-  _ -> pure $ str "nyi"
+  Test {} -> drawTest env
 
 onEvent :: (?terms :: Terms) => BrickEvent () () -> EventM () Env ()
-onEvent event = join $ gets \case
-  Select mode -> onSelectEvent mode event
-  Flashcards cards card flipped -> onFlashcardsEvent (cards, card, flipped) event
-  Match terms definitions selected correct start end -> onMatchEvent (terms, definitions, selected, correct, start, end) event
-  _ -> pure ()
+onEvent event = do
+  env <- get
+  case env of
+    Select {} -> onSelectEvent env event
+    Flashcards {} -> onFlashcardsEvent env event
+    Match {} -> onMatchEvent env event
+    Test {} -> onTestEvent env event
 
 runApp :: Terms -> IO ()
 runApp terms = void . defaultMain app $ Select 0
  where
-  app = App
+  app = let ?terms = terms in App
     { appDraw = draw
     , appChooseCursor = showFirstCursor
-    , appHandleEvent = let ?terms = terms in onEvent
+    , appHandleEvent = onEvent
     , appStartEvent = pure ()
     , appAttrMap = const $ attrMap VT.defAttr 
       [ (attrName "selected", fg VT.brightGreen)
+      , (attrName "revealed", fg VT.brightYellow)
+      , (attrName "incorrect", fg VT.brightRed)
       ]
     }
