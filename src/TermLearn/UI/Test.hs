@@ -15,7 +15,7 @@ import TermLearn.Types
 import TermLearn.UI.Logo
 
 drawTest :: (?terms :: Terms) => Env -> [Widget ()]
-drawTest (Test terms typed correct incorrect attr) = pure . vCenter . hCenter . padBottom (Pad 2) . hLimit (logoWidth + 6) $ vBox 
+drawTest (Test terms typed correct incorrect attr) = pure . vCenter . hCenter . padBottom (Pad pad) . hLimit (logoWidth + 6) $ vBox 
   [ hCenter . withBorderStyle unicodeRounded . border . padRight Max . vLimit (logoHeight + 6) $ vBox body
   , hCenter $ vBox help
   ]
@@ -34,6 +34,9 @@ drawTest (Test terms typed correct incorrect attr) = pure . vCenter . hCenter . 
       [ str "enter - submit answer"
       , str "tab   - reveal answer"
       ]
+  pad = case terms of
+    [] -> 3
+    _ -> 1
 
 onTestEvent :: Env -> BrickEvent () () -> EventM () Env ()
 onTestEvent = \case
